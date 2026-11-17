@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en-ZA">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>My Tasks</title>
+<style>
+  :root { color-scheme: light dark; font-family: system-ui, sans-serif; }
+  body { margin: 0; padding: 16px; max-width: 640px; margin-inline: auto; }
+  h1 { font-size: 1.5rem; margin: 0 0 12px; }
+  .row { display: flex; gap: 8px; margin-bottom: 12px; }
+  input[type=text] { flex: 1; padding: 12px; font-size: 1rem; border-radius: 8px; border: 1px solid #888; }
+  button { padding: 12px 16px; font-size: 1rem; border-radius: 8px; border: 1px solid #888; cursor: pointer; }
+  button.primary { background: #1a73e8; color: #fff; border-color: #1a73e8; }
+  button.mic.listening { background: #d93025; color: #fff; border-color: #d93025; }
+  ul { list-style: none; padding: 0; margin: 0; }
+  li { display: flex; align-items: center; gap: 10px; padding: 12px 0; border-bottom: 1px solid #8884; }
+  li span { flex: 1; font-size: 1rem; }
+  li button { padding: 6px 10px; font-size: 0.9rem; }
+  #status { font-size: 0.9rem; opacity: 0.75; min-height: 1.2em; margin: 8px 0; }
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+<h1>My Tasks</h1>
+
+<div id="signin" class="row">
+  <button class="primary" id="signinBtn">Sign in with Google</button>
+</div>
+
+<div id="app" class="hidden">
+  <div class="row">
+    <input type="text" id="newTask" placeholder="New task" autocomplete="off">
+    <button class="primary" id="addBtn">Add</button>
+    <button class="mic" id="micBtn" title="Speak a command">🎤</button>
+  </div>
+  <div id="status"></div>
+  <ul id="taskList"></ul>
+  <p style="font-size:.85rem;opacity:.7">
+    Voice commands: "add buy milk", "done buy milk", "read my tasks".
+  </p>
+</div>
+
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://apis.google.com/js/api.js" async defer></script>
+<script>
+// ====== Your OAuth Client ID ======
+const CLIENT_ID = "462560160655-evlmap1a6d5emttsk82vg4kn6g3333u3.apps.googleusercontent.com";
+// ==================================
+
+const SCOPE = "https://www.googleapis.com/auth/tasks";
+
+let tokenClient = null;
+let gapiReady = false;
+let listId = null;
+
+const $ = (id) => document.getElementById(id);
+const status = (msg) => { $("status").textContent = msg; };
+
+// ---------- Load Google libraries ----------
+function initLibraries() {
+  if (!window.google || !google.accounts || !window.gapi) {
+    setTimeout(initLibraries, 300);
+    return;
+  }
+  gapi.load("client", async () => {
+    await gapi.client.init({});
+    await gapi.client.load("https://www.googleapis.com/discovery/v1/apis/tasks/v1/rest");
+    gapiReady = true;
+  });
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: CLIENT_ID,
+    scope: SCOPE,
+    callback: (resp) => {
+      if (resp.error) { status("Sign-in failed: " + resp.error); return; }
+      gapi.client.setToken({ access_token: resp.access_token });
+      $("signin").classList.add("hidden");
+      $("app").classList.remove("hidden");
+      loadTasks();
+    },
+  });
+}
+
+$("signinBtn").addEventListener("click", () => {
+  if (!tokenClient || !gapiReady) { status("Still loading, try again in a moment."); return; }
+  tokenClient.requestAccessToken();
+});
+
+// ---------- Google Tasks calls ----------
+async function getListId() {
+  if (listId) return listId;
+  const res = await gapi.client.tasks.tasklists.list();
+  listId = res.result.items[0].id; // your default task list
+  return listId;
+}
+
+async function findOpenTasks() {
+  const id = await getListId();
+  const res = await gapi.client.tasks.tasks.list({
+    tasklist: id,
+    showCompleted: false,
+    maxResults: 100,
+  });
+  return res.result.items || [];
+}
+
+async function loadTasks() {
+  try {
+    status("Loading...");
+    renderTasks(await findOpenTasks());
+  } catch (e) {
+    status("Error: " + (e.result?.error?.message || e.message || e));
+  }
+}
+
+function renderTasks(items) {
+  const ul = $("taskList");
+  ul.innerHTML = "";
+  if (!items.length) { status("No open tasks."); return []; }
+  status(items.length + " open task(s)");
+  for (const t of items) {
+    const li = document.createElement("li");
+    const span = document.createElement("span");
+    span.textContent = t.title;
+    const btn = document.createElement("button");
+    btn.textContent = "Done";
+    btn.addEventListener("click", () => completeTask(t.id, t.title));
+    li.append(span, btn);
+    ul.append(li);
+  }
+  return items;
+}
+
+async function addTask(title) {
+  const id = await getListId();
+  await gapi.client.tasks.tasks.insert({ tasklist: id, resource: { title } });
+  status("Added: " + title);
+  await loadTasks();
+}
+
+async function completeTask(taskId, title) {
+  const id = await getListId();
+  await gapi.client.tasks.tasks.patch({
+    tasklist: id,
+    task: taskId,
+    resource: { status: "completed" },
+  });
+  status("Done: " + title);
+  await loadTasks();
+}
+
+// ---------- Typed input ----------
+$("addBtn").addEventListener("click", () => {
+  const title = $("newTask").value.trim();
+  if (!title) return;
+  $("newTask").value = "";
+  addTask(title).catch(e => status("Error: " + (e.result?.error?.message || e.message || e)));
+});
+$("newTask").addEventListener("keydown", (e) => { if (e.key === "Enter") $("addBtn").click(); });
+
+// ---------- Voice ----------
+const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+let recognizer = null;
+
+if (Recognition) {
+  recognizer = new Recognition();
+  recognizer.lang = "en-ZA";
+  recognizer.interimResults = false;
+  recognizer.maxAlternatives = 1;
+
+  recognizer.onstart = () => $("micBtn").classList.add("listening");
+  recognizer.onend = () => $("micBtn").classList.remove("listening");
+  recognizer.onerror = (e) => status("Voice error: " + e.error);
+  recognizer.onresult = (e) => {
+    const said = e.results[0][0].transcript.trim();
+    status("Heard: " + said);
+    handleCommand(said).catch(err => status("Error: " + (err.result?.error?.message || err.message || err)));
+  };
+} else {
+  $("micBtn").disabled = true;
+  $("micBtn").title = "Voice input not supported in this browser (try Chrome)";
+}
+
+$("micBtn").addEventListener("click", () => {
+  if (!recognizer) return;
+  try { recognizer.start(); } catch (_) { recognizer.stop(); }
+});
+
+function speak(text) {
+  if (!("speechSynthesis" in window)) return;
+  speechSynthesis.speak(new SpeechSynthesisUtterance(text));
+}
+
+async function handleCommand(text) {
+  const lower = text.toLowerCase().replace(/[.,!?]/g, "").trim();
+
+  if (lower.startsWith("add ")) {
+    const title = text.slice(4).trim();
+    await addTask(title);
+    speak("Added " + title);
+    return;
+  }
+
+  if (lower.startsWith("done ") || lower.startsWith("complete ")) {
+    const phrase = lower.replace(/^(done|complete)\s+/, "");
+    const open = await findOpenTasks();
+    const match = open.find(t => t.title.toLowerCase().includes(phrase));
+    if (!match) { status("No open task matching \"" + phrase + "\""); speak("I could not find that task"); return; }
+    await completeTask(match.id, match.title);
+    speak("Marked " + match.title + " as done");
+    return;
+  }
+
+  if (lower.includes("read") && lower.includes("task")) {
+    const open = await findOpenTasks();
+    if (!open.length) { speak("You have no open tasks"); return; }
+    speak("You have " + open.length + " tasks. " + open.map(t => t.title).join(". "));
+    renderTasks(open);
+    return;
+  }
+
+  status("I didn't understand that. Try: add, done, or read my tasks.");
+  speak("Sorry, I did not understand");
+}
+
+initLibraries();
+</script>
+</body>
+</html>
