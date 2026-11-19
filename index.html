@@ -3,43 +3,294 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0B57D0">
 <title>My Tasks</title>
 <style>
-  :root { color-scheme: light dark; font-family: system-ui, sans-serif; }
-  body { margin: 0; padding: 16px; max-width: 640px; margin-inline: auto; }
-  h1 { font-size: 1.5rem; margin: 0 0 12px; }
-  .row { display: flex; gap: 8px; margin-bottom: 12px; }
-  input[type=text] { flex: 1; padding: 12px; font-size: 1rem; border-radius: 8px; border: 1px solid #888; }
-  button { padding: 12px 16px; font-size: 1rem; border-radius: 8px; border: 1px solid #888; cursor: pointer; }
-  button.primary { background: #1a73e8; color: #fff; border-color: #1a73e8; }
-  button.mic.listening { background: #d93025; color: #fff; border-color: #d93025; }
-  ul { list-style: none; padding: 0; margin: 0; }
-  li { display: flex; align-items: center; gap: 10px; padding: 12px 0; border-bottom: 1px solid #8884; }
-  li span { flex: 1; font-size: 1rem; }
-  li button { padding: 6px 10px; font-size: 0.9rem; }
-  #status { font-size: 0.9rem; opacity: 0.75; min-height: 1.2em; margin: 8px 0; }
-  .hidden { display: none; }
+  :root {
+    color-scheme: light dark;
+    --accent: #0B57D0;
+    --accent-soft: rgba(11, 87, 208, 0.12);
+    --danger: #d93025;
+    --bg: #f5f7fb;
+    --card: #ffffff;
+    --text: #1f2328;
+    --muted: #5f6368;
+    --border: #dadce0;
+    --border-strong: #b8bcc4;
+    --overdue: #b3261e;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #121417;
+      --card: #1c1f24;
+      --text: #e8eaed;
+      --muted: #9aa0a6;
+      --border: #3c4043;
+      --border-strong: #5f6368;
+      --accent: #8ab4f8;
+      --accent-soft: rgba(138, 180, 248, 0.15);
+      --overdue: #f2b8b5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--bg);
+    color: var(--text);
+  }
+  .hidden { display: none !important; }
+
+  /* Bold header band */
+  .band {
+    background: #0B57D0;
+    color: #ffffff;
+    padding: 24px 16px 20px;
+  }
+  .band-inner { max-width: 560px; margin: 0 auto; }
+  .band h1 {
+    font-size: 1.9rem;
+    font-weight: 700;
+    margin: 0;
+    letter-spacing: -0.01em;
+  }
+  .band .sub {
+    font-size: 0.95rem;
+    opacity: 0.9;
+    margin-top: 4px;
+    min-height: 1.2em;
+  }
+
+  .wrap {
+    max-width: 560px;
+    margin: 0 auto;
+    padding: 18px 16px 40px;
+  }
+
+  .row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 14px;
+  }
+  input[type=text] {
+    flex: 1;
+    min-width: 0;
+    height: 48px;
+    padding: 0 14px;
+    font-size: 16px; /* 16px stops phones zooming in when typing */
+    border-radius: 10px;
+    border: 1px solid var(--border-strong);
+    background: var(--card);
+    color: var(--text);
+    outline: none;
+  }
+  input[type=text]:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+
+  button {
+    font: inherit;
+    height: 48px;
+    padding: 0 18px;
+    border-radius: 10px;
+    border: 1px solid var(--border-strong);
+    background: var(--card);
+    color: var(--text);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.15s, transform 0.05s;
+  }
+  button:active { transform: scale(0.97); }
+  button:disabled { opacity: 0.5; cursor: default; }
+  button.primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #ffffff;
+    font-weight: 600;
+  }
+  button.primary:hover { filter: brightness(1.05); }
+  button.mic {
+    width: 48px;
+    height: 48px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+  }
+  button.mic.listening {
+    background: var(--danger);
+    border-color: var(--danger);
+    color: #ffffff;
+    animation: pulse 1.1s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(217, 48, 37, 0.5); }
+    50% { box-shadow: 0 0 0 8px rgba(217, 48, 37, 0); }
+  }
+
+  /* Morning brief */
+  .brief {
+    background: var(--card);
+    border: 1px solid var(--accent);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  .brief-title {
+    font-size: 1.15rem;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .brief-label {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--accent);
+    font-weight: 600;
+    margin: 12px 0 4px;
+  }
+  .brief-item {
+    font-size: 0.97rem;
+    padding: 3px 0;
+    overflow-wrap: anywhere;
+  }
+  .brief-item.overdue { color: var(--overdue); font-weight: 600; }
+  .brief-muted {
+    color: var(--muted);
+    font-size: 0.92rem;
+  }
+  .brief-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 12px;
+  }
+  .brief-actions button { min-width: 96px; }
+
+  /* Yes / No confirmation for voice input */
+  .confirm {
+    background: var(--card);
+    border: 1px solid var(--accent);
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin-bottom: 14px;
+  }
+  .confirm-text {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 12px;
+  }
+  .confirm-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+  }
+  .confirm-actions button { min-width: 84px; }
+
+  #status {
+    font-size: 0.92rem;
+    color: var(--muted);
+    min-height: 1.3em;
+    margin: 0 2px 12px;
+  }
+
+  ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  li {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--accent);
+    border-radius: 12px;
+  }
+  .task-body { flex: 1; min-width: 0; }
+  .task-title {
+    font-size: 1.05rem;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+  }
+  .task-due {
+    font-size: 0.85rem;
+    color: var(--accent);
+    margin-top: 3px;
+  }
+  .task-due.overdue { color: var(--overdue); font-weight: 600; }
+  li button {
+    height: 36px;
+    padding: 0 14px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--accent);
+    border-color: var(--accent);
+    background: transparent;
+  }
+  li button:hover { background: var(--accent-soft); }
+
+  .hint {
+    font-size: 0.85rem;
+    color: var(--muted);
+    margin-top: 22px;
+    line-height: 1.5;
+  }
 </style>
 </head>
 <body>
-<h1>My Tasks</h1>
 
-<div id="signin" class="row">
-  <button class="primary" id="signinBtn">Sign in with Google</button>
-</div>
-
-<div id="app" class="hidden">
-  <div class="row">
-    <input type="text" id="newTask" placeholder="New task" autocomplete="off">
-    <button class="primary" id="addBtn">Add</button>
-    <button class="mic" id="micBtn" title="Speak a command">🎤</button>
+<header class="band">
+  <div class="band-inner">
+    <h1>My Tasks</h1>
+    <div id="count" class="sub"></div>
   </div>
-  <div id="status"></div>
-  <ul id="taskList"></ul>
-  <p style="font-size:.85rem;opacity:.7">
-    Voice commands: "add buy milk", "done buy milk", "read my tasks".
-  </p>
-</div>
+</header>
+
+<main class="wrap">
+  <div id="signin" class="row">
+    <button class="primary" id="signinBtn">Sign in with Google</button>
+  </div>
+
+  <div id="app" class="hidden">
+    <div id="brief" class="brief hidden">
+      <div id="briefTitle" class="brief-title"></div>
+      <div id="briefBody"></div>
+      <div class="brief-actions">
+        <button class="primary" id="briefClose">Got it</button>
+      </div>
+    </div>
+
+    <div class="row">
+      <input type="text" id="newTask" placeholder="What do you need to do?" autocomplete="off">
+      <button class="primary" id="addBtn">Add</button>
+      <button class="mic" id="micBtn" title="Speak a command" aria-label="Speak a command">🎤</button>
+    </div>
+
+    <div id="confirm" class="confirm hidden">
+      <div id="confirmText" class="confirm-text"></div>
+      <div class="confirm-actions">
+        <button id="noBtn">No</button>
+        <button class="primary" id="yesBtn">Yes</button>
+      </div>
+    </div>
+
+    <div id="status"></div>
+    <ul id="taskList"></ul>
+
+    <p class="hint">
+      Voice commands: "add buy milk", "done buy milk", "read my tasks".
+    </p>
+  </div>
+</main>
 
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script src="https://apis.google.com/js/api.js" async defer></script>
@@ -48,14 +299,20 @@
 const CLIENT_ID = "462560160655-evlmap1a6d5emttsk82vg4kn6g3333u3.apps.googleusercontent.com";
 // ==================================
 
-const SCOPE = "https://www.googleapis.com/auth/tasks";
+// Tasks, plus permission to add and read events on the assistant's calendar
+const SCOPE = "https://www.googleapis.com/auth/tasks https://www.googleapis.com/auth/calendar.events";
+const TZ = "Africa/Johannesburg";
 
 let tokenClient = null;
 let gapiReady = false;
 let listId = null;
+let pending = null; // a voice task or meeting waiting for Yes or No
+let briefShown = false;
 
 const $ = (id) => document.getElementById(id);
 const status = (msg) => { $("status").textContent = msg; };
+const errText = (e) => (e.result?.error?.message || e.message || String(e));
+const pad = (n) => String(n).padStart(2, "0");
 
 // ---------- Load Google libraries ----------
 function initLibraries() {
@@ -66,6 +323,7 @@ function initLibraries() {
   gapi.load("client", async () => {
     await gapi.client.init({});
     await gapi.client.load("https://www.googleapis.com/discovery/v1/apis/tasks/v1/rest");
+    await gapi.client.load("https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest");
     gapiReady = true;
   });
   tokenClient = google.accounts.oauth2.initTokenClient({
@@ -85,6 +343,224 @@ $("signinBtn").addEventListener("click", () => {
   if (!tokenClient || !gapiReady) { status("Still loading, try again in a moment."); return; }
   tokenClient.requestAccessToken();
 });
+
+$("briefClose").addEventListener("click", () => $("brief").classList.add("hidden"));
+
+// ---------- Dates ----------
+const DAYS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+const DAY_WORDS = "today|tomorrow|sunday|monday|tuesday|wednesday|thursday|friday|saturday";
+
+function ymd(d) {
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+// Turns "today", "tomorrow" or a weekday name into a date.
+// A weekday means today if it is that day, otherwise the next time it comes round.
+function dayFromWord(word) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const w = word.toLowerCase();
+  if (w === "today") return today;
+  const d = new Date(today);
+  if (w === "tomorrow") {
+    d.setDate(d.getDate() + 1);
+  } else {
+    const diff = (DAYS.indexOf(w) - today.getDay() + 7) % 7;
+    d.setDate(d.getDate() + diff);
+  }
+  return d;
+}
+
+// Splits "call Sipho tomorrow" into a title and a due date.
+// Understands: today, tomorrow, weekday names, "in N days".
+function parseDue(text) {
+  const t = text.trim();
+  let m;
+
+  m = t.match(new RegExp(`\\s+(?:on\\s+)?(${DAY_WORDS})$`, "i"));
+  if (m) {
+    return { title: t.slice(0, m.index).trim(), due: ymd(dayFromWord(m[1])) };
+  }
+
+  m = t.match(/\s+in\s+(\d+)\s+days?$/i);
+  if (m) {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() + parseInt(m[1], 10));
+    return { title: t.slice(0, m.index).trim(), due: ymd(d) };
+  }
+
+  return { title: t, due: null };
+}
+
+// Google returns due dates as "2026-11-18T00:00:00.000Z"; only the date part matters.
+function dueParts(due) {
+  const [y, mo, d] = due.slice(0, 10).split("-").map(Number);
+  return new Date(y, mo - 1, d);
+}
+
+function formatDue(dueStr) {
+  return dueParts(dueStr).toLocaleDateString("en-ZA", { weekday: "short", day: "numeric", month: "short" });
+}
+
+function isOverdue(dueStr) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return dueParts(dueStr) < today;
+}
+
+// ---------- Meetings ----------
+// Reads things like:
+//   "meet Sipho Thursday at 3"
+//   "meet Sipho Thursday at 3 at Vida Cafe"
+//   "meet Sipho tomorrow at 14:30 for 30 minutes"
+// Returns { title, start, duration, location } or { error }.
+function parseMeeting(text) {
+  let s = text.trim().replace(/[.,!?]/g, "");
+  s = s.replace(/^meet(ing)?\s+(with\s+)?/i, "");
+
+  // Length: "for 30 minutes" or "for 2 hours". Default is one hour.
+  let duration = 60;
+  const dur = s.match(/\bfor\s+(\d+)\s*(hours?|hrs?|minutes?|mins?)\b/i);
+  if (dur) {
+    duration = parseInt(dur[1], 10) * (/^h/i.test(dur[2]) ? 60 : 1);
+    s = s.slice(0, dur.index) + s.slice(dur.index + dur[0].length);
+  }
+
+  // Time: "at 3", "at 3pm", "at 14:30"
+  const tm = s.match(/\bat\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\b/i);
+  if (!tm) return { error: "What time is it? Try: meet Sipho Thursday at 3." };
+
+  let h = parseInt(tm[1], 10);
+  const mins = tm[2] ? parseInt(tm[2], 10) : 0;
+  const ap = tm[3] ? tm[3].toLowerCase() : null;
+  if (ap === "pm" && h < 12) h += 12;
+  if (ap === "am" && h === 12) h = 0;
+  if (!ap && h >= 1 && h <= 7) h += 12; // "at 3" means 3 in the afternoon
+  if (h > 23 || mins > 59) return { error: "That time doesn't look right." };
+
+  // Location: anything after the time, such as "at Vida Cafe"
+  const location = s.slice(tm.index + tm[0].length).replace(/^\s*(at|in)\s+/i, "").trim();
+
+  // Day: must be named before the time
+  let before = s.slice(0, tm.index);
+  const dm = before.match(new RegExp(`\\b(?:on\\s+)?(${DAY_WORDS})\\b`, "i"));
+  if (!dm) return { error: "Which day? Try: meet Sipho Thursday at 3." };
+  const day = dayFromWord(dm[1]);
+  before = before.slice(0, dm.index) + before.slice(dm.index + dm[0].length);
+
+  const title = before.trim().replace(/\s+/g, " ");
+  if (!title) return { error: "Who is the meeting with?" };
+
+  const start = new Date(day.getFullYear(), day.getMonth(), day.getDate(), h, mins, 0);
+  return { title, start, duration, location };
+}
+
+function localStamp(d) {
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:00`;
+}
+
+async function createMeeting(m) {
+  const end = new Date(m.start.getTime() + m.duration * 60000);
+  const summary = "Meet " + m.title.charAt(0).toUpperCase() + m.title.slice(1);
+  const resource = {
+    summary,
+    start: { dateTime: localStamp(m.start), timeZone: TZ },
+    end: { dateTime: localStamp(end), timeZone: TZ },
+    reminders: { useDefault: false, overrides: [{ method: "popup", minutes: 30 }] },
+  };
+  if (m.location) resource.location = m.location;
+
+  await gapi.client.calendar.events.insert({ calendarId: "primary", resource });
+  status("Meeting added: " + summary);
+}
+
+function describeMeeting(m) {
+  const day = m.start.toLocaleDateString("en-ZA", { weekday: "short", day: "numeric", month: "short" });
+  const time = m.start.toLocaleTimeString("en-ZA", { hour: "2-digit", minute: "2-digit" });
+  const summary = "Meet " + m.title.charAt(0).toUpperCase() + m.title.slice(1);
+  let text = `Add meeting "${summary}" on ${day} at ${time} for ${m.duration} min`;
+  if (m.location) text += ` at ${m.location}`;
+  return text + "?";
+}
+
+// ---------- Morning brief ----------
+// Shown once per day, the first time the app loads after sign-in.
+async function showMorningBrief(tasks) {
+  const todayStr = ymd(new Date());
+  if (briefShown) return;
+  try {
+    if (localStorage.getItem("briefDate") === todayStr) return;
+  } catch (_) { /* storage may be blocked; show anyway */ }
+  briefShown = true;
+
+  const start = new Date();
+  start.setHours(0, 0, 0, 0);
+  const end = new Date(start);
+  end.setDate(end.getDate() + 1);
+
+  let events = [];
+  try {
+    const res = await gapi.client.calendar.events.list({
+      calendarId: "primary",
+      timeMin: start.toISOString(),
+      timeMax: end.toISOString(),
+      singleEvents: true,
+      orderBy: "startTime",
+    });
+    events = res.result.items || [];
+  } catch (_) {
+    events = [];
+  }
+
+  const dueToday = tasks.filter(t => t.due && t.due.slice(0, 10) <= todayStr);
+
+  const body = $("briefBody");
+  body.innerHTML = "";
+  $("briefTitle").textContent = "Today, " + start.toLocaleDateString("en-ZA", { weekday: "long", day: "numeric", month: "long" });
+
+  addLabel(body, "Meetings");
+  if (!events.length) addMuted(body, "No meetings today.");
+  for (const ev of events) {
+    const when = ev.start && ev.start.dateTime
+      ? new Date(ev.start.dateTime).toLocaleTimeString("en-ZA", { hour: "2-digit", minute: "2-digit" })
+      : "All day";
+    let text = when + "  " + (ev.summary || "Untitled");
+    if (ev.location) text += " at " + ev.location;
+    addItem(body, text);
+  }
+
+  addLabel(body, "Tasks due");
+  if (!dueToday.length) addMuted(body, "No tasks due today.");
+  for (const t of dueToday) {
+    const overdue = t.due.slice(0, 10) < todayStr;
+    addItem(body, (overdue ? "Overdue: " : "") + t.title, overdue);
+  }
+
+  $("brief").classList.remove("hidden");
+  try { localStorage.setItem("briefDate", todayStr); } catch (_) { /* ignore */ }
+}
+
+function addLabel(parent, text) {
+  const d = document.createElement("div");
+  d.className = "brief-label";
+  d.textContent = text;
+  parent.append(d);
+}
+
+function addMuted(parent, text) {
+  const d = document.createElement("div");
+  d.className = "brief-muted";
+  d.textContent = text;
+  parent.append(d);
+}
+
+function addItem(parent, text, overdue = false) {
+  const d = document.createElement("div");
+  d.className = "brief-item" + (overdue ? " overdue" : "");
+  d.textContent = text;
+  parent.append(d);
+}
 
 // ---------- Google Tasks calls ----------
 async function getListId() {
@@ -107,34 +583,56 @@ async function findOpenTasks() {
 async function loadTasks() {
   try {
     status("Loading...");
-    renderTasks(await findOpenTasks());
+    const items = await findOpenTasks();
+    renderTasks(items);
+    showMorningBrief(items).catch(() => {});
   } catch (e) {
-    status("Error: " + (e.result?.error?.message || e.message || e));
+    status("Error: " + errText(e));
   }
 }
 
 function renderTasks(items) {
   const ul = $("taskList");
   ul.innerHTML = "";
-  if (!items.length) { status("No open tasks."); return []; }
-  status(items.length + " open task(s)");
+  $("count").textContent = items.length + " open task" + (items.length === 1 ? "" : "s");
+  if (!items.length) { status("No open tasks. Nice work."); return []; }
+  status("");
+
   for (const t of items) {
     const li = document.createElement("li");
-    const span = document.createElement("span");
-    span.textContent = t.title;
+
+    const body = document.createElement("div");
+    body.className = "task-body";
+
+    const title = document.createElement("div");
+    title.className = "task-title";
+    title.textContent = t.title;
+    body.append(title);
+
+    if (t.due) {
+      const due = document.createElement("div");
+      const overdue = isOverdue(t.due);
+      due.className = "task-due" + (overdue ? " overdue" : "");
+      due.textContent = (overdue ? "Overdue · " : "Due ") + formatDue(t.due);
+      body.append(due);
+    }
+
     const btn = document.createElement("button");
     btn.textContent = "Done";
     btn.addEventListener("click", () => completeTask(t.id, t.title));
-    li.append(span, btn);
+
+    li.append(body, btn);
     ul.append(li);
   }
   return items;
 }
 
-async function addTask(title) {
+async function addTask(title, due = null) {
   const id = await getListId();
-  await gapi.client.tasks.tasks.insert({ tasklist: id, resource: { title } });
-  status("Added: " + title);
+  const resource = { title };
+  if (due) resource.due = due + "T00:00:00.000Z";
+  await gapi.client.tasks.tasks.insert({ tasklist: id, resource });
+  status("Added: " + title + (due ? " (due " + formatDue(due + "T00:00:00.000Z") + ")" : ""));
   await loadTasks();
 }
 
@@ -149,14 +647,63 @@ async function completeTask(taskId, title) {
   await loadTasks();
 }
 
-// ---------- Typed input ----------
-$("addBtn").addEventListener("click", () => {
-  const title = $("newTask").value.trim();
-  if (!title) return;
+// ---------- Typed input (no confirmation needed) ----------
+$("addBtn").addEventListener("click", async () => {
+  const text = $("newTask").value.trim();
+  if (!text) return;
   $("newTask").value = "";
-  addTask(title).catch(e => status("Error: " + (e.result?.error?.message || e.message || e)));
+
+  try {
+    if (/^meet(ing)?\s/i.test(text)) {
+      const m = parseMeeting(text);
+      if (m.error) { status(m.error); return; }
+      await createMeeting(m);
+    } else {
+      const { title, due } = parseDue(text);
+      if (!title) return;
+      await addTask(title, due);
+    }
+  } catch (e) {
+    status("Error: " + errText(e));
+  }
 });
 $("newTask").addEventListener("keydown", (e) => { if (e.key === "Enter") $("addBtn").click(); });
+
+// ---------- Voice confirmation ----------
+function showConfirm(item, question, spoken) {
+  pending = item;
+  $("confirmText").textContent = question;
+  $("confirm").classList.remove("hidden");
+  speak(spoken);
+}
+
+function hideConfirm() {
+  pending = null;
+  $("confirm").classList.add("hidden");
+}
+
+$("yesBtn").addEventListener("click", async () => {
+  if (!pending) return;
+  const item = pending;
+  hideConfirm();
+  try {
+    if (item.type === "meeting") {
+      await createMeeting(item.meeting);
+      speak("Meeting added");
+    } else {
+      await addTask(item.title, item.due);
+      speak("Added " + item.title);
+    }
+  } catch (e) {
+    status("Error: " + errText(e));
+  }
+});
+
+$("noBtn").addEventListener("click", () => {
+  hideConfirm();
+  status("Cancelled.");
+  speak("Cancelled");
+});
 
 // ---------- Voice ----------
 const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -174,7 +721,7 @@ if (Recognition) {
   recognizer.onresult = (e) => {
     const said = e.results[0][0].transcript.trim();
     status("Heard: " + said);
-    handleCommand(said).catch(err => status("Error: " + (err.result?.error?.message || err.message || err)));
+    handleCommand(said).catch(err => status("Error: " + errText(err)));
   };
 } else {
   $("micBtn").disabled = true;
@@ -183,6 +730,7 @@ if (Recognition) {
 
 $("micBtn").addEventListener("click", () => {
   if (!recognizer) return;
+  hideConfirm();
   try { recognizer.start(); } catch (_) { recognizer.stop(); }
 });
 
@@ -191,13 +739,41 @@ function speak(text) {
   speechSynthesis.speak(new SpeechSynthesisUtterance(text));
 }
 
+// Fixes common mishearings of the command word at the start of a phrase
+function normalise(text) {
+  const words = text.trim().replace(/[.,!?]/g, "").split(/\s+/);
+  const fixes = {
+    or: "add", at: "add", ad: "add", a: "add",
+    dun: "done", don: "done", um: "done",
+    red: "read", reed: "read",
+    meat: "meet", meed: "meet",
+  };
+  const first = words[0].toLowerCase();
+  if (words.length > 1 && fixes[first]) words[0] = fixes[first];
+  return words.join(" ");
+}
+
 async function handleCommand(text) {
-  const lower = text.toLowerCase().replace(/[.,!?]/g, "").trim();
+  const cmd = normalise(text);
+  const lower = cmd.toLowerCase();
 
   if (lower.startsWith("add ")) {
-    const title = text.slice(4).trim();
-    await addTask(title);
-    speak("Added " + title);
+    const { title, due } = parseDue(cmd.slice(4));
+    if (!title) { status("What should I add?"); speak("What should I add?"); return; }
+    const dueText = due ? " due " + formatDue(due + "T00:00:00.000Z") : "";
+    showConfirm(
+      { type: "task", title, due },
+      `Add "${title}"${dueText}?`,
+      `Add ${title}${dueText}? Say yes or no.`
+    );
+    return;
+  }
+
+  if (/^meet(ing)?\s/.test(lower)) {
+    const m = parseMeeting(cmd);
+    if (m.error) { status(m.error); speak(m.error); return; }
+    const question = describeMeeting(m);
+    showConfirm({ type: "meeting", meeting: m }, question, question + " Say yes or no.");
     return;
   }
 
@@ -211,7 +787,7 @@ async function handleCommand(text) {
     return;
   }
 
-  if (lower.includes("read") && lower.includes("task")) {
+  if (/\b(read|red|reed)\b/.test(lower) && lower.includes("task")) {
     const open = await findOpenTasks();
     if (!open.length) { speak("You have no open tasks"); return; }
     speak("You have " + open.length + " tasks. " + open.map(t => t.title).join(". "));
@@ -219,7 +795,7 @@ async function handleCommand(text) {
     return;
   }
 
-  status("I didn't understand that. Try: add, done, or read my tasks.");
+  status("I didn't understand that. Try: add, meet, done, or read my tasks.");
   speak("Sorry, I did not understand");
 }
 
